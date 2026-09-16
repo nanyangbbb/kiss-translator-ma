@@ -1,0 +1,29 @@
+{
+  "app_name": {
+    "message": "KISS Translator MA"
+  },
+  "app_description": {
+    "message": "Translate MathAcademy lessons into Chinese, preserving LaTeX & math symbols."
+  },
+  "toggle_translate": {
+    "message": "開啟翻譯"
+  },
+  "toggle_translate_only": {
+    "message": "僅顯示譯文"
+  },
+  "toggle_style": {
+    "message": "切換樣式"
+  },
+  "open_options": {
+    "message": "開啟設定"
+  },
+  "open_tranbox": {
+    "message": "開啟彈出視窗"
+  },
+  "open_separate_window": {
+    "message": "打開獨立視窗"
+  },
+  "toggle_tranbox": {
+    "message": "切換劃詞翻譯"
+  }
+}

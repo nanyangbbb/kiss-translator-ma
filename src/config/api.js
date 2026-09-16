@@ -1,0 +1,844 @@
+export const DEFAULT_HTTP_TIMEOUT = 10000; // 调用超时时间
+export const DEFAULT_FETCH_LIMIT = 10; // 默认最大任务数量
+export const DEFAULT_FETCH_INTERVAL = 100; // 默认任务间隔时间
+export const DEFAULT_BATCH_INTERVAL = 400; // 批处理请求间隔时间
+export const DEFAULT_BATCH_SIZE = 10; // 每次最多发送段落数量
+export const DEFAULT_BATCH_LENGTH = 10000; // 每次发送最大文字数量
+export const DEFAULT_CONTEXT_SIZE = 3; // 上下文会话数量
+
+export const INPUT_PLACE_URL = "{{url}}"; // 占位符
+export const INPUT_PLACE_FROM = "{{from}}"; // 占位符
+export const INPUT_PLACE_TO = "{{to}}"; // 占位符
+export const INPUT_PLACE_FROM_LANG = "{{fromLang}}"; // 占位符
+export const INPUT_PLACE_TO_LANG = "{{toLang}}"; // 占位符
+export const INPUT_PLACE_TEXT = "{{text}}"; // 占位符
+export const INPUT_PLACE_TONE = "{{tone}}"; // 占位符
+export const INPUT_PLACE_TITLE = "{{title}}"; // 标题
+export const INPUT_PLACE_DESCRIPTION = "{{description}}"; // 描述
+export const INPUT_PLACE_SUMMARY = "{{summary}}"; // 摘要
+export const INPUT_PLACE_KEY = "{{key}}"; // 占位符
+export const INPUT_PLACE_MODEL = "{{model}}"; // 占位符
+export const INPUT_PLACE_GLOSSARY = "{{glossary}}"; // 占位符
+
+// export const OPT_DICT_BAIDU = "Baidu";
+export const OPT_DICT_BING = "Bing";
+export const OPT_DICT_YOUDAO = "Youdao";
+export const OPT_DICT_ALL = [OPT_DICT_BING, OPT_DICT_YOUDAO];
+export const OPT_DICT_MAP = new Set(OPT_DICT_ALL);
+
+export const OPT_SUG_BAIDU = "Baidu";
+export const OPT_SUG_YOUDAO = "Youdao";
+export const OPT_SUG_ALL = [OPT_SUG_BAIDU, OPT_SUG_YOUDAO];
+export const OPT_SUG_MAP = new Set(OPT_SUG_ALL);
+
+export const OPT_TRANS_BUILTINAI = "BuiltinAI";
+export const OPT_TRANS_GOOGLE = "Google";
+export const OPT_TRANS_GOOGLE_2 = "Google2";
+export const OPT_TRANS_MICROSOFT = "Microsoft";
+export const OPT_TRANS_AZUREAI = "AzureAI";
+export const OPT_TRANS_DEEPSEEK = "DeepSeek";
+export const OPT_TRANS_SILICONFLOW = "SiliconFlow";
+export const OPT_TRANS_XIAOMIMIMO = "XiaomiMimo";
+export const OPT_TRANS_ALIYUNBAILIAN = "AliyunBailian";
+export const OPT_TRANS_CEREBRAS = "Cerebras";
+export const OPT_TRANS_ZAI = "Zai";
+export const OPT_TRANS_DEEPL = "DeepL";
+export const OPT_TRANS_DEEPLX = "DeepLX";
+export const OPT_TRANS_DEEPLFREE = "DeepLFree";
+export const OPT_TRANS_EPHONEAI = "ePhoneAI";
+export const OPT_TRANS_BAIDU = "Baidu";
+export const OPT_TRANS_TENCENT = "Tencent";
+export const OPT_TRANS_VOLCENGINE = "Volcengine";
+export const OPT_TRANS_OPENAI = "OpenAI";
+export const OPT_TRANS_GEMINI = "Gemini";
+export const OPT_TRANS_GEMINI_2 = "Gemini2";
+export const OPT_TRANS_CLAUDE = "Claude";
+export const OPT_TRANS_CLOUDFLAREAI = "CloudflareAI";
+export const OPT_TRANS_OLLAMA = "Ollama";
+export const OPT_TRANS_OPENROUTER = "OpenRouter";
+export const OPT_TRANS_CUSTOMIZE = "Custom";
+
+// 内置支持的翻译引擎
+export const OPT_ALL_TRANS_TYPES = [
+  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_GOOGLE,
+  OPT_TRANS_GOOGLE_2,
+  OPT_TRANS_MICROSOFT,
+  OPT_TRANS_AZUREAI,
+  // OPT_TRANS_BAIDU,
+  OPT_TRANS_DEEPSEEK,
+  OPT_TRANS_SILICONFLOW,
+  OPT_TRANS_XIAOMIMIMO,
+  OPT_TRANS_ALIYUNBAILIAN,
+  OPT_TRANS_CEREBRAS,
+  OPT_TRANS_ZAI,
+  OPT_TRANS_TENCENT,
+  OPT_TRANS_VOLCENGINE,
+  OPT_TRANS_DEEPL,
+  OPT_TRANS_DEEPLFREE,
+  OPT_TRANS_DEEPLX,
+  OPT_TRANS_EPHONEAI,
+  OPT_TRANS_OPENAI,
+  OPT_TRANS_GEMINI,
+  OPT_TRANS_GEMINI_2,
+  OPT_TRANS_CLAUDE,
+  OPT_TRANS_CLOUDFLAREAI,
+  OPT_TRANS_OLLAMA,
+  OPT_TRANS_OPENROUTER,
+  OPT_TRANS_CUSTOMIZE,
+];
+
+export const OPT_LANGDETECTOR_ALL = [
+  OPT_TRANS_BUILTINAI,
+  OPT_TRANS_GOOGLE,
+  OPT_TRANS_MICROSOFT,
+  OPT_TRANS_BAIDU,
+  OPT_TRANS_TENCENT,
+];
+
+export const OPT_LANGDETECTOR_MAP = new Set(OPT_LANGDETECTOR_ALL);
+
+// 翻译引擎特殊集合
+export const API_SPE_TYPES = {
+  // 内置翻译
+  builtin: new Set(OPT_ALL_TRANS_TYPES),
+  // 机器翻译
+  machine: new Set([
+    OPT_TRANS_MICROSOFT,
+    OPT_TRANS_DEEPLFREE,
+    OPT_TRANS_BAIDU,
+    OPT_TRANS_TENCENT,
+    OPT_TRANS_VOLCENGINE,
+  ]),
+  // AI翻译
+  ai: new Set([
+    OPT_TRANS_EPHONEAI,
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_CLAUDE,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OPENROUTER,
+    OPT_TRANS_CUSTOMIZE,
+  ]),
+  // 支持多key
+  mulkeys: new Set([
+    OPT_TRANS_AZUREAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
+    OPT_TRANS_DEEPL,
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_CLAUDE,
+    OPT_TRANS_CLOUDFLAREAI,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OPENROUTER,
+    OPT_TRANS_EPHONEAI,
+    OPT_TRANS_CUSTOMIZE,
+  ]),
+  // 支持批处理
+  batch: new Set([
+    OPT_TRANS_AZUREAI,
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
+    OPT_TRANS_GOOGLE_2,
+    OPT_TRANS_MICROSOFT,
+    OPT_TRANS_TENCENT,
+    OPT_TRANS_DEEPL,
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_CLAUDE,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OPENROUTER,
+    OPT_TRANS_EPHONEAI,
+    OPT_TRANS_CUSTOMIZE,
+  ]),
+  // 支持上下文
+  context: new Set([
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_CLAUDE,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OPENROUTER,
+    OPT_TRANS_EPHONEAI,
+    OPT_TRANS_CUSTOMIZE,
+  ]),
+  // 支持流式传输
+  stream: new Set([
+    OPT_TRANS_DEEPSEEK,
+    OPT_TRANS_SILICONFLOW,
+    OPT_TRANS_XIAOMIMIMO,
+    OPT_TRANS_ALIYUNBAILIAN,
+    OPT_TRANS_CEREBRAS,
+    OPT_TRANS_ZAI,
+    OPT_TRANS_OPENAI,
+    OPT_TRANS_GEMINI,
+    OPT_TRANS_GEMINI_2,
+    OPT_TRANS_CLAUDE,
+    OPT_TRANS_OLLAMA,
+    OPT_TRANS_OPENROUTER,
+    OPT_TRANS_EPHONEAI,
+  ]),
+  // 赞助商
+  sponsors: new Set([OPT_TRANS_EPHONEAI]),
+};
+
+// 思考模式参数映射：定义各API的思考开关和强度参数
+// type: 注入逻辑类型; efforts: 思考强度选项(强→弱), null表示无强度控制
+// disableSupported: 是否支持关闭思考,默认true; 设为false则不显示"关闭思考"选项
+export const THINKING_PARAM_MAP = {
+  [OPT_TRANS_DEEPSEEK]: {
+    type: "deepseek",
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "high", label: "High" },
+    ],
+  },
+  [OPT_TRANS_SILICONFLOW]: {
+    type: "siliconflow",
+    efforts: [
+      { value: "max", label: "Max (32768)" },
+      { value: "high", label: "High (16384)" },
+      { value: "medium", label: "Medium (8192)" },
+      { value: "low", label: "Low (4096)" },
+      { value: "minimal", label: "Minimal (2048)" },
+    ],
+  },
+  [OPT_TRANS_XIAOMIMIMO]: {
+    type: "deepseek",
+    efforts: null,
+  },
+  [OPT_TRANS_ALIYUNBAILIAN]: {
+    type: "aliyunbailian",
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "high", label: "High" },
+    ],
+  },
+  [OPT_TRANS_CEREBRAS]: {
+    type: "cerebras",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_ZAI]: {
+    type: "deepseek",
+    efforts: null,
+  },
+  [OPT_TRANS_GEMINI]: {
+    type: "gemini",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
+    ],
+  },
+  [OPT_TRANS_CLAUDE]: {
+    type: "claude",
+    disableSupported: false,
+    efforts: [
+      { value: "max", label: "Max" },
+      { value: "xhigh", label: "X-High" },
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_OLLAMA]: {
+    type: "cerebras",
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+    ],
+  },
+  [OPT_TRANS_OPENROUTER]: {
+    type: "openrouter",
+    disableSupported: false,
+    efforts: [
+      { value: "high", label: "High" },
+      { value: "medium", label: "Medium" },
+      { value: "low", label: "Low" },
+      { value: "minimal", label: "Minimal" },
+    ],
+  },
+};
+
+export const BUILTIN_STONES = [
+  "formal", // 正式风格
+  "casual", // 口语风格
+  "neutral", // 中性风格
+  "technical", // 技术风格
+  "marketing", // 营销风格
+  "Literary", // 文学风格
+  "academic", // 学术风格
+  "legal", // 法律风格
+  "literal", // 直译风格
+  "idiomatic", // 意译风格
+  "transcreation", // 创译风格
+  "machine-like", // 机器风格
+  "concise", // 简明风格
+];
+export const BUILTIN_PLACEHOLDERS = ["{ }", "{{ }}", "[ ]", "[[ ]]"];
+export const BUILTIN_PLACETAGS = ["i", "a", "b", "x", "span"];
+export const PLACETAG_FORMATS = ["compact", "attribute"]; // 占位符格式：简洁格式、属性格式
+
+export const OPT_LANGS_TO = [
+  ["en", "English - English"],
+  ["zh-CN", "Simplified Chinese - 简体中文"],
+  ["zh-TW", "Traditional Chinese - 繁體中文"],
+  ["ar", "Arabic - العربية"],
+  ["bg", "Bulgarian - Български"],
+  ["ca", "Catalan - Català"],
+  ["hr", "Croatian - Hrvatski"],
+  ["cs", "Czech - Čeština"],
+  ["da", "Danish - Dansk"],
+  ["nl", "Dutch - Nederlands"],
+  ["fa", "Persian - فارسی"],
+  ["fi", "Finnish - Suomi"],
+  ["fr", "French - Français"],
+  ["de", "German - Deutsch"],
+  ["el", "Greek - Ελληνικά"],
+  ["hi", "Hindi - हिन्दी"],
+  ["hu", "Hungarian - Magyar"],
+  ["id", "Indonesian - Indonesia"],
+  ["it", "Italian - Italiano"],
+  ["ja", "Japanese - 日本語"],
+  ["ko", "Korean - 한국어"],
+  ["ms", "Malay - Melayu"],
+  ["mt", "Maltese - Malti"],
+  ["nb", "Norwegian - Norsk Bokmål"],
+  ["pl", "Polish - Polski"],
+  ["pt", "Portuguese - Português"],
+  ["ro", "Romanian - Română"],
+  ["ru", "Russian - Русский"],
+  ["sk", "Slovak - Slovenčina"],
+  ["sl", "Slovenian - Slovenščina"],
+  ["es", "Spanish - Español"],
+  ["sv", "Swedish - Svenska"],
+  ["ta", "Tamil - தமிழ்"],
+  ["te", "Telugu - తెలుగు"],
+  ["th", "Thai - ไทย"],
+  ["tr", "Turkish - Türkçe"],
+  ["uk", "Ukrainian - Українська"],
+  ["vi", "Vietnamese - Tiếng Việt"],
+];
+export const OPT_LANGS_LIST = OPT_LANGS_TO.map(([lang]) => lang);
+export const OPT_LANGS_FROM = [["auto", "Auto-detect"], ...OPT_LANGS_TO];
+export const OPT_LANGS_MAP = new Map(OPT_LANGS_TO);
+
+// CODE->名称
+export const OPT_LANGS_SPEC_NAME = new Map(
+  OPT_LANGS_FROM.map(([key, val]) => [key, val.split(" - ")[0]])
+);
+export const OPT_LANGS_SPEC_DEFAULT = new Map(
+  OPT_LANGS_FROM.map(([key]) => [key, key])
+);
+export const OPT_LANGS_SPEC_DEFAULT_UC = new Map(
+  OPT_LANGS_FROM.map(([key]) => [key, key.toUpperCase()])
+);
+export const OPT_LANGS_TO_SPEC = {
+  [OPT_TRANS_BUILTINAI]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT,
+    ["zh-CN", "zh-Hans"],
+    ["zh-TW", "zh-Hant"],
+  ]),
+  [OPT_TRANS_GOOGLE]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_GOOGLE_2]: OPT_LANGS_SPEC_DEFAULT,
+  [OPT_TRANS_MICROSOFT]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT,
+    ["auto", ""],
+    ["zh-CN", "zh-Hans"],
+    ["zh-TW", "zh-Hant"],
+  ]),
+  [OPT_TRANS_AZUREAI]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT,
+    ["auto", ""],
+    ["zh-CN", "zh-Hans"],
+    ["zh-TW", "zh-Hant"],
+  ]),
+  [OPT_TRANS_DEEPL]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT_UC,
+    ["auto", ""],
+    ["zh-CN", "ZH"],
+    ["zh-TW", "ZH"],
+  ]),
+  [OPT_TRANS_DEEPLFREE]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT_UC,
+    ["auto", "auto"],
+    ["zh-CN", "ZH"],
+    ["zh-TW", "ZH"],
+  ]),
+  [OPT_TRANS_DEEPLX]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT_UC,
+    ["auto", "auto"],
+    ["zh-CN", "ZH"],
+    ["zh-TW", "ZH"],
+  ]),
+  [OPT_TRANS_DEEPSEEK]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_SILICONFLOW]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_XIAOMIMIMO]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_ALIYUNBAILIAN]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_CEREBRAS]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_ZAI]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_VOLCENGINE]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT,
+    ["auto", "auto"],
+    ["zh-CN", "zh"],
+    ["zh-TW", "zh-Hant"],
+  ]),
+  [OPT_TRANS_BAIDU]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT,
+    ["zh-CN", "zh"],
+    ["zh-TW", "cht"],
+    ["ar", "ara"],
+    ["bg", "bul"],
+    ["ca", "cat"],
+    ["hr", "hrv"],
+    ["da", "dan"],
+    ["fi", "fin"],
+    ["fr", "fra"],
+    ["hi", "mai"],
+    ["ja", "jp"],
+    ["ko", "kor"],
+    ["ms", "may"],
+    ["mt", "mlt"],
+    ["nb", "nor"],
+    ["ro", "rom"],
+    ["ru", "ru"],
+    ["sl", "slo"],
+    ["es", "spa"],
+    ["sv", "swe"],
+    ["ta", "tam"],
+    ["te", "tel"],
+    ["uk", "ukr"],
+    ["vi", "vie"],
+  ]),
+  [OPT_TRANS_TENCENT]: new Map([
+    ["auto", "auto"],
+    ["zh-CN", "zh"],
+    ["zh-TW", "zh"],
+    ["en", "en"],
+    ["ar", "ar"],
+    ["de", "de"],
+    ["ru", "ru"],
+    ["fr", "fr"],
+    ["fi", "fil"],
+    ["ko", "ko"],
+    ["ms", "ms"],
+    ["pt", "pt"],
+    ["ja", "ja"],
+    ["th", "th"],
+    ["tr", "tr"],
+    ["es", "es"],
+    ["it", "it"],
+    ["hi", "hi"],
+    ["id", "id"],
+    ["vi", "vi"],
+  ]),
+  [OPT_TRANS_EPHONEAI]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_OPENAI]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_GEMINI]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_GEMINI_2]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_CLAUDE]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_OLLAMA]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_OPENROUTER]: OPT_LANGS_SPEC_NAME,
+  [OPT_TRANS_CLOUDFLAREAI]: new Map([
+    ...OPT_LANGS_SPEC_DEFAULT,
+    ["auto", "en"],
+    ["zh-CN", "zh"],
+    ["zh-TW", "zh"],
+  ]),
+  [OPT_TRANS_CUSTOMIZE]: OPT_LANGS_SPEC_NAME,
+};
+
+const specToCode = (m) =>
+  new Map(
+    Array.from(m.entries()).map(([k, v]) => {
+      if (v === "") {
+        return ["auto", "auto"];
+      }
+      if (v === "zh" || v === "ZH") {
+        return [v, "zh-CN"];
+      }
+      return [v, k];
+    })
+  );
+
+// 名称->CODE
+export const OPT_LANGS_TO_CODE = {};
+Object.entries(OPT_LANGS_TO_SPEC).forEach(([t, m]) => {
+  OPT_LANGS_TO_CODE[t] = specToCode(m);
+});
+
+export const defaultNobatchPrompt = `You are a professional, authentic machine translation engine.`;
+export const defaultNobatchUserPrompt = `# Context
+Title: ${INPUT_PLACE_TITLE}
+Description: ${INPUT_PLACE_DESCRIPTION}
+Summary: ${INPUT_PLACE_SUMMARY}
+Tone: ${INPUT_PLACE_TONE}
+
+# Task
+Translate the Source Text below to ${INPUT_PLACE_TO}.
+1. Use the Context to ensure accuracy.
+2. Adapt the wording to match the specified Tone.
+3. Output ONLY the translated text. No markdown, no explanations.
+
+Source Text: ${INPUT_PLACE_TEXT}
+
+Translated Text:`;
+
+export const defaultSystemPrompt = `Act as a translation API. Output a single raw JSON object only. No extra text or fences.
+
+Input:
+{"targetLanguage":"<lang>","title":"<context>","description":"<context>","summary":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
+
+Output:
+{"translations":[{"id":1,"text":"...","sourceLanguage":"<detected>"}]}
+
+Rules:
+1.  Use title/description for context only; do not output them.
+2.  Keep id, order, and count of segments.
+3.  Preserve whitespace, HTML entities, and all HTML-like tags (e.g., <i1>, <a1>). Translate inner text only.
+4.  Highest priority: Follow 'glossary'. Use value for translation; if value is "", keep the key.
+5.  Do not translate: content in <code>, <pre>, text enclosed in backticks, or placeholders like {1}, {{1}}, [1], [[1]].
+6.  Apply the specified tone to the translation.
+7.  Detect sourceLanguage for each segment.
+8.  Return empty or unchanged inputs as is.
+
+Example:
+Input: {"targetLanguage":"zh-CN","segments":[{"id":1,"text":"A <b>React</b> component."}],"glossary":{"component":"组件","React":""}}
+Output: {"translations":[{"id":1,"text":"一个<b>React</b>组件","sourceLanguage":"en"}]}
+
+Fail-safe: On any error, return {"translations":[]}.`;
+
+export const defaultSystemPromptXml = `Act as a translation API. Output raw XML-like format only. No Markdown fences (xml). No conversational filler.
+
+Input:
+{"targetLanguage":"<lang>","title":"<context>","description":"<context>","summary":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
+
+Output Format:
+<root>
+    <t id="0" sourceLanguage="<detected_source_lang>">Translated text content...</t>
+    <t id="1" sourceLanguage="<detected_source_lang>">Translated text content...</t>
+</root>
+
+Rules:
+1.  **Strict Format**: Output ONLY the <root> element and its children. Do not include "xml" version declarations or markdown code blocks.
+2.  **Structure**: Maintain the exact "id" from the input in the "id" attribute. Detect the source language for the "sourceLanguage" attribute.
+3.  **HTML & Whitespace**: Preserve all HTML tags (e.g., <b>, <span>, <br>) and whitespace exactly as they appear in the structure. Only translate the text content inside them.
+4.  **Glossary**: Highest priority. Use the glossary value for translation. If the value is "", keep the source term as is.
+5.  **Do Not Translate**: Content inside <code>, <pre>, text in backticks ("code"), and placeholders like {1}, {{1}}, [1], [[1]].
+6.  **Context**: Use the "title" and "description" fields to understand the context for better translation accuracy, but do not output them.
+7.  **Tone**: Apply the specified "tone" (formal/casual).
+
+Example:
+Input:
+{"targetLanguage":"zh-CN","segments":[{"id":0,"text":"Hello <b>World</b>!"}],"glossary":{"World":"世界"},"tone":"formal"}
+
+Output:
+<root>
+    <t id="0" sourceLanguage="en">你好 <b>世界</b>！</t>
+</root>`;
+
+export const defaultSystemPromptLines = `Act as a translation API. Output raw text lines in "ID | Text" format. No Markdown. No conversational filler.
+
+Input:
+{"targetLanguage":"<lang>","title":"<context>","description":"<context>","summary":"<context>","segments":[{"id":1,"text":"..."}],"glossary":{"sourceTerm":"targetTerm"},"tone":"<formal|casual>"}
+
+Output Format:
+<id> | <Translation for Segment>
+<id> | <Translation for Segment>
+...
+
+Rules:
+1.  **Strict Format**: Output exactly one line per segment using the format: "{id} | {translated_text}".
+2.  **ID Mapping**: You MUST copy the exact "id" from the input segment to the output line.
+3.  **Newline Handling**: If the translated text contains a newline, replace it with the HTML tag "<br>" to ensure it stays on a single line.
+4.  **Separator**: Use the pipe symbol " | " strictly to separate the ID and the text.
+5.  **Context**: Use title/description for context only; do not output them.
+6.  **HTML/Tags**: Preserve whitespace, HTML entities, and all HTML-like tags (e.g., <i1>, <b>). Translate inner text only.
+7.  **Glossary**: Highest priority. Follow 'glossary'. Use value for translation; if value is "", keep the key.
+8.  **Do Not Translate**: content in <code>, <pre>, text enclosed in backticks, or placeholders like {1}, {{1}}, [1].
+9.  **Tone**: Apply the specified tone.
+
+Example:
+Input: {"targetLanguage":"zh-CN","segments":[{"id":0,"text":"Hello."},{"id":1,"text":"Line 1\nLine 2"}],"glossary":{}}
+Output:
+0 | 你好。
+1 | 第一行<br>第二行
+
+Fail-safe: On error, return "{id} | {original_text}" line by line.`;
+
+// const defaultSubtitlePrompt = `Goal: Convert raw subtitle event JSON into a clean, sentence-based JSON array.
+
+// Output (valid JSON array, output ONLY this array):
+// [{
+//   "text": "string",        // Full sentence with correct punctuation
+//   "translation": "string", // Translation in ${INPUT_PLACE_TO}
+//   "start": int,            // Start time (ms)
+//   "end": int,              // End time (ms)
+// }]
+
+// Guidelines:
+// 1. **Segmentation**: Merge sequential 'utf8' strings from 'segs' into full sentences, merging groups logically.
+// 2. **Punctuation**: Ensure proper sentence-final punctuation (., ?, !); add if missing.
+// 3. **Translation**: Translate 'text' into ${INPUT_PLACE_TO}, place result in 'translation'.
+// 4. **Special Cases**: '[Music]' (and similar cues) are standalone entries. Translate appropriately (e.g., '[音乐]', '[Musique]').
+// `;
+
+export const defaultSubtitlePrompt = `# Context
+Title: ${INPUT_PLACE_TITLE}
+Description: ${INPUT_PLACE_DESCRIPTION}
+Summary: ${INPUT_PLACE_SUMMARY}
+Tone: ${INPUT_PLACE_TONE}
+
+# Glossary (Terminology):
+${INPUT_PLACE_GLOSSARY}
+
+# Task
+Group the input word-level JSON into bilingual subtitle segments. Target Language: ${INPUT_PLACE_TO}.
+
+# Output Contract
+1. Output a JSON array only. No markdown, no code fences, no extra text.
+2. Each element: {"s":<first_word_id>,"e":<last_word_id>,"o":"merged original text","t":"translation"}
+3. "s" and "e" are inclusive word IDs from the input.
+4. Cover all input words exactly once (no gaps, no overlaps).
+
+# Rules
+1. Merge words into complete sentences, split at natural pauses into readable segments.
+2. Some input words include "p" (pause level 1-3). Higher "p" suggests a stronger sentence boundary, but grammar and meaning take priority.
+3. Translate using Context and Tone.
+
+# Example
+Input: [{"id":0,"text":"Hello"},{"id":1,"text":"world!"},{"id":2,"text":"Good","p":2},{"id":3,"text":"morning."}]
+Output: [{"s":0,"e":1,"o":"Hello world!","t":"你好，世界！"},{"s":2,"e":3,"o":"Good morning.","t":"早上好。"}]`;
+
+const defaultRequestHook = `async (args, { url, body, headers, userMsg, method } = {}) => {
+  console.log("request hook args:", { args, url, body, headers, userMsg, method });
+  // return { url, body, headers, userMsg, method };
+};`;
+
+const defaultResponseHook = `async ({ res, ...args }) => {
+  console.log("reaponse hook args:", { res, args });
+  // const translations = [["你好", "zh"]];
+  // const modelMsg = "";
+  // return { translations, modelMsg };
+};`;
+
+// 翻译接口默认参数
+const defaultApi = {
+  apiSlug: "", // 唯一标识
+  apiName: "", // 接口名称
+  apiType: "", // 接口类型
+  url: "",
+  key: "",
+  model: "", // 模型名称
+  systemPrompt: defaultSystemPromptXml,
+  subtitlePrompt: defaultSubtitlePrompt,
+  nobatchPrompt: defaultNobatchPrompt,
+  nobatchUserPrompt: defaultNobatchUserPrompt,
+  userPrompt: "",
+  tone: BUILTIN_STONES[0], // 翻译风格
+  placeholder: BUILTIN_PLACEHOLDERS[0], // 占位符
+  placetag: BUILTIN_PLACETAGS[0], // 占位标签
+  aiTerms: "", // AI智能专业术语 （todo: 备用）
+  customHeader: "",
+  customBody: "",
+  reqHook: "", // request 钩子函数
+  resHook: "", // response 钩子函数
+  fetchLimit: DEFAULT_FETCH_LIMIT, // 最大请求数量
+  fetchInterval: DEFAULT_FETCH_INTERVAL, // 请求间隔时间
+  httpTimeout: DEFAULT_HTTP_TIMEOUT * 3, // 请求超时时间
+  batchInterval: DEFAULT_BATCH_INTERVAL, // 批处理请求间隔时间
+  batchSize: DEFAULT_BATCH_SIZE, // 每次最多发送段落数量
+  batchLength: DEFAULT_BATCH_LENGTH, // 每次发送最大文字数量
+  useBatchFetch: false, // 是否启用聚合发送请求
+  useStream: false, // 是否启用流式传输
+  streamRenderMode: "disabled", // 流式渲染模式：disabled/realtime/segment
+  transAllnow: false, // 是否立即全部翻译
+  rootMargin: 500, // 滚动加载提前触发距离
+  useContext: false, // 是否启用智能上下文
+  contextSize: DEFAULT_CONTEXT_SIZE, // 智能上下文保留会话数
+  temperature: 0.0,
+  maxTokens: 20480,
+  thinkingMode: "auto", // 思考模式：auto | enabled | disabled
+  thinkingEffort: "_default", // 思考强度：_default=接口默认,不注入参数
+  isDisabled: false, // 是否不显示,
+  region: "", // Azure 专用
+  sortOrder: 0, // 排序权重，数值越小越靠前
+  placetagFormat: "compact", // 占位符格式：compact(<a1>) 或 attribute(<a i=1>)
+};
+
+const defaultApiOpts = {
+  [OPT_TRANS_BUILTINAI]: defaultApi,
+  [OPT_TRANS_GOOGLE]: {
+    ...defaultApi,
+    url: "https://translate.googleapis.com/translate_a/single",
+  },
+  [OPT_TRANS_GOOGLE_2]: {
+    ...defaultApi,
+    url: "https://translate-pa.googleapis.com/v1/translateHtml",
+    key: "AIzaSyATBXajvzQLTDHEQbcpq0Ihe0vWDHmO520",
+    useBatchFetch: true,
+    placetag: "a",
+    placetagFormat: "attribute",
+  },
+  [OPT_TRANS_MICROSOFT]: {
+    ...defaultApi,
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_AZUREAI]: {
+    ...defaultApi,
+    url: "https://api.cognitive.microsofttranslator.com/translate?api-version=3.0",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_BAIDU]: {
+    ...defaultApi,
+  },
+  [OPT_TRANS_TENCENT]: {
+    ...defaultApi,
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_VOLCENGINE]: {
+    ...defaultApi,
+  },
+  [OPT_TRANS_DEEPL]: {
+    ...defaultApi,
+    url: "https://api-free.deepl.com/v2/translate",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_DEEPLFREE]: {
+    ...defaultApi,
+    fetchLimit: 1,
+  },
+  [OPT_TRANS_DEEPSEEK]: {
+    ...defaultApi,
+    url: "https://api.deepseek.com/chat/completions",
+    key: "",
+    model: "deepseek-chat",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_SILICONFLOW]: {
+    ...defaultApi,
+    url: "https://api.siliconflow.cn/v1/chat/completions",
+    model: "Pro/zai-org/GLM-4.7",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_XIAOMIMIMO]: {
+    ...defaultApi,
+    url: "https://api.xiaomimimo.com/v1/chat/completions",
+    model: "mimo-v2.5-pro",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_ALIYUNBAILIAN]: {
+    ...defaultApi,
+    url: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    model: "qwen-plus",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_CEREBRAS]: {
+    ...defaultApi,
+    url: "https://api.cerebras.ai/v1/chat/completions",
+    model: "gpt-oss-120b",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_ZAI]: {
+    ...defaultApi,
+    url: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+    model: "glm-5.1",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_DEEPLX]: {
+    ...defaultApi,
+    url: "http://localhost:1188/translate",
+  },
+  [OPT_TRANS_EPHONEAI]: {
+    ...defaultApi,
+    url: "https://api.ephone.ai/v1/chat/completions",
+  },
+  [OPT_TRANS_OPENAI]: {
+    ...defaultApi,
+    url: "https://api.openai.com/v1/chat/completions",
+    model: "gpt-4",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_GEMINI]: {
+    ...defaultApi,
+    url: `https://generativelanguage.googleapis.com/v1beta/models/${INPUT_PLACE_MODEL}:generateContent`,
+    model: "gemini-2.5-flash",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_GEMINI_2]: {
+    ...defaultApi,
+    url: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`,
+    model: "gemini-2.0-flash",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_CLAUDE]: {
+    ...defaultApi,
+    url: "https://api.anthropic.com/v1/messages",
+    model: "claude-3-haiku-20240307",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_CLOUDFLAREAI]: {
+    ...defaultApi,
+    url: "https://api.cloudflare.com/client/v4/accounts/{{ACCOUNT_ID}}/ai/run/@cf/meta/m2m100-1.2b",
+  },
+  [OPT_TRANS_OLLAMA]: {
+    ...defaultApi,
+    url: "http://localhost:11434/v1/chat/completions",
+    model: "llama3.1",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_OPENROUTER]: {
+    ...defaultApi,
+    url: "https://openrouter.ai/api/v1/chat/completions",
+    model: "openai/gpt-4o",
+    useBatchFetch: true,
+  },
+  [OPT_TRANS_CUSTOMIZE]: {
+    ...defaultApi,
+    reqHook: defaultRequestHook,
+    resHook: defaultResponseHook,
+  },
+};
+
+// 内置翻译接口列表（带参数）
+export const DEFAULT_API_LIST = OPT_ALL_TRANS_TYPES.map((apiType) => ({
+  ...defaultApiOpts[apiType],
+  apiSlug: apiType,
+  apiName: apiType,
+  apiType,
+}));
+
+export const DEFAULT_API_TYPE = OPT_TRANS_DEEPSEEK;
+export const DEFAULT_API_SETTING = DEFAULT_API_LIST.find(
+  (a) => a.apiType === DEFAULT_API_TYPE
+);

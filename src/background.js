@@ -1,0 +1,597 @@
+import browser from "webextension-polyfill";
+import {
+  MSG_FETCH,
+  MSG_GET_HTTPCACHE,
+  MSG_PUT_HTTPCACHE,
+  MSG_TRANS_TOGGLE,
+  MSG_TRANS_TOGGLE_ONLY,
+  MSG_OPEN_OPTIONS,
+  MSG_SAVE_RULE,
+  MSG_TRANS_TOGGLE_STYLE,
+  MSG_OPEN_TRANBOX,
+  MSG_TRANSBOX_TOGGLE,
+  MSG_CONTEXT_MENUS,
+  MSG_COMMAND_SHORTCUTS,
+  MSG_INJECT_JS,
+  MSG_INJECT_CSS,
+  MSG_UPDATE_CSP,
+  MSG_BUILTINAI_DETECT,
+  MSG_BUILTINAI_TRANSLATE,
+  CMD_TOGGLE_TRANSLATE,
+  CMD_TOGGLE_TRANSLATE_ONLY,
+  CMD_TOGGLE_STYLE,
+  CMD_OPEN_OPTIONS,
+  CMD_OPEN_TRANBOX,
+  CMD_TOGGLE_TRANBOX,
+  CMD_OPEN_SEPARATE_WINDOW,
+  CLIENT_THUNDERBIRD,
+  MSG_SET_LOGLEVEL,
+  MSG_CLEAR_CACHES,
+  MSG_OPEN_SEPARATE_WINDOW,
+  STOKEY_SEPARATE_WINDOW,
+  PORT_STREAM_FETCH,
+  MSG_UPDATE_ICON,
+} from "./config";
+import { getSettingWithDefault, tryInitDefaultData } from "./libs/storage";
+import { trySyncSettingAndRules } from "./libs/sync";
+import { fetchHandle, fetchStreamNative } from "./libs/fetch";
+import { tryClearCaches, getHttpCache, putHttpCache } from "./libs/cache";
+import { sendTabMsg } from "./libs/msg";
+import { trySyncAllSubRules } from "./libs/subRules";
+import { saveRule } from "./libs/rules";
+import { getCurTabId } from "./libs/msg";
+import { injectInlineJsBg, injectInternalCss } from "./libs/injector";
+import { kissLog, logger } from "./libs/log";
+import { chromeDetect, chromeTranslate } from "./libs/builtinAI";
+
+globalThis.__KISS_CONTEXT__ = "background";
+
+async function updateIcon(isActive, tabId) {
+  const suffix = isActive ? "_active" : "";
+  const path = {
+    16: `images/logo16${suffix}.png`,
+    32: `images/logo32${suffix}.png`,
+    48: `images/logo48${suffix}.png`,
+    128: `images/logo128${suffix}.png`,
+    192: `images/logo192${suffix}.png`,
+  };
+  try {
+    // 兼容 v2 清单下的 Firefox
+    if (browser.action) {
+      await browser.action.setIcon({ path, tabId });
+    } else {
+      await browser.browserAction.setIcon({ path, tabId });
+    }
+  } catch (err) {
+    kissLog("updateIcon error", err);
+  }
+}
+
+const CSP_RULE_START_ID = 1;
+const ORI_RULE_START_ID = 10000;
+const CSP_REMOVE_HEADERS = [
+  `content-security-policy`,
+  `content-security-policy-report-only`,
+  `x-webkit-csp`,
+  `x-content-security-policy`,
+];
+
+// 独立窗口ID
+let separateWindowId = null;
+// 记录窗口最后一次有效的位置和大小
+let lastKnownBounds = null;
+
+const DEFAULT_SEPARATE_WINDOW_BOUNDS = {
+  left: 100,
+  top: 100,
+  width: 400,
+  height: 400,
+};
+
+/**
+ * 将独立窗口数据写入存储
+ */
+async function persistSeparateWindowBounds(bounds) {
+  if (!bounds) return;
+  try {
+    await browser.storage.local.set({ [STOKEY_SEPARATE_WINDOW]: bounds });
+    kissLog("Final separate window bounds saved to storage", bounds);
+  } catch (err) {
+    kissLog("Save separate window bounds error", err);
+  }
+}
+
+/**
+ * 打开独立窗口
+ */
+async function openSeparateWindowWithSavedBounds() {
+  try {
+    // 如果窗口已存在，则聚焦它而不是重复创建
+    if (separateWindowId !== null) {
+      const allWindows = await browser.windows.getAll();
+      const existingWin = allWindows.find((w) => w.id === separateWindowId);
+      if (existingWin) {
+        await browser.windows.update(separateWindowId, { focused: true });
+        kissLog("Separate window is ready");
+        return existingWin;
+      }
+    }
+
+    const stored = await browser.storage.local.get(STOKEY_SEPARATE_WINDOW);
+    const saved = stored && stored[STOKEY_SEPARATE_WINDOW];
+    const bounds = Object.assign(
+      {},
+      DEFAULT_SEPARATE_WINDOW_BOUNDS,
+      saved || {}
+    );
+
+    const win = await browser.windows.create({
+      url: "popup.html#tranbox",
+      type: "popup",
+      left: Math.round(bounds.left),
+      top: Math.round(bounds.top),
+      width: Math.round(bounds.width),
+      height: Math.round(bounds.height),
+      focused: true,
+    });
+
+    separateWindowId = win.id;
+    lastKnownBounds = {
+      left: win.left,
+      top: win.top,
+      width: win.width,
+      height: win.height,
+    };
+
+    return win;
+  } catch (err) {
+    kissLog("open separate window error", err);
+  }
+}
+
+/**
+ * 更新内存中的坐标缓存
+ */
+async function updateCacheFromActual(windowId) {
+  try {
+    const win = await browser.windows.get(windowId);
+    if (win && win.state === "normal") {
+      lastKnownBounds = {
+        left: Math.round(win.left),
+        top: Math.round(win.top),
+        width: Math.round(win.width),
+        height: Math.round(win.height),
+      };
+      kissLog("Bounds cached via fallback:", lastKnownBounds);
+      // todo: 获取到的left和top均为0？
+      // todo: firefox 每重新打开一次，窗口愈来愈大？
+    }
+  } catch (e) {
+    // 窗口可能已关闭
+  }
+}
+
+/**
+ * 监听焦点变化(兼容桌面Firefox)
+ * Firefox 移动端不支持
+ */
+browser.windows?.onFocusChanged?.addListener?.(async (windowId) => {
+  if (separateWindowId !== null) {
+    await updateCacheFromActual(separateWindowId);
+  }
+});
+
+/**
+ * 监听位置变化：仅更新内存，不操作 Storage
+ * Firefox 不支持 browser.windows.onBoundsChanged
+ */
+browser.windows?.onBoundsChanged?.addListener?.((win) => {
+  if (separateWindowId !== null && win.id === separateWindowId) {
+    lastKnownBounds = {
+      left: win.left ?? lastKnownBounds.left,
+      top: win.top ?? lastKnownBounds.top,
+      width: win.width ?? lastKnownBounds.width,
+      height: win.height ?? lastKnownBounds.height,
+    };
+    // todo: 获取到的left和top均为0？
+  }
+});
+
+/**
+ * 监听窗口关闭：此时执行持久化
+ * Firefox 移动端不支持
+ */
+browser.windows?.onRemoved?.addListener?.(async (windowId) => {
+  if (windowId === separateWindowId) {
+    if (lastKnownBounds) {
+      await persistSeparateWindowBounds(lastKnownBounds);
+    }
+
+    separateWindowId = null;
+    lastKnownBounds = null;
+  }
+});
+
+/**
+ * 添加右键菜单
+ */
+async function addContextMenus(contextMenuType = 1) {
+  // 添加前先删除,避免重复ID的错误
+  try {
+    await browser.contextMenus.removeAll();
+  } catch (err) {
+    kissLog("remove contextMenus", err);
+  }
+
+  switch (contextMenuType) {
+    case 1:
+      browser.contextMenus.create({
+        id: CMD_TOGGLE_TRANSLATE,
+        title: browser.i18n.getMessage("app_name"),
+        contexts: ["page", "selection"],
+      });
+      break;
+    case 2:
+      browser.contextMenus.create({
+        id: CMD_TOGGLE_TRANSLATE,
+        title: browser.i18n.getMessage("toggle_translate"),
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: CMD_TOGGLE_TRANSLATE_ONLY,
+        title: browser.i18n.getMessage("toggle_translate_only"),
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: CMD_TOGGLE_STYLE,
+        title: browser.i18n.getMessage("toggle_style"),
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: CMD_OPEN_TRANBOX,
+        title: browser.i18n.getMessage("open_tranbox"),
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: "options_separator",
+        type: "separator",
+        contexts: ["page", "selection"],
+      });
+      browser.contextMenus.create({
+        id: CMD_OPEN_OPTIONS,
+        title: browser.i18n.getMessage("open_options"),
+        contexts: ["page", "selection"],
+      });
+      break;
+    default:
+  }
+}
+
+/**
+ * 更新CSP策略
+ * @param {*} csplist
+ */
+async function updateCspRules({ csplist, orilist }) {
+  try {
+    const oldRules = await browser.declarativeNetRequest.getDynamicRules();
+
+    const rulesToAdd = [];
+    const idsToRemove = [];
+
+    if (csplist !== undefined) {
+      let processedCspList = csplist;
+      if (typeof processedCspList === "string") {
+        processedCspList = processedCspList
+          .split(/\n|,/)
+          .map((url) => url.trim())
+          .filter(Boolean);
+      }
+
+      const oldCspRuleIds = oldRules
+        .filter(
+          (rule) => rule.id >= CSP_RULE_START_ID && rule.id < ORI_RULE_START_ID
+        )
+        .map((rule) => rule.id);
+      idsToRemove.push(...oldCspRuleIds);
+
+      const newCspRules = processedCspList.map((url, index) => ({
+        id: CSP_RULE_START_ID + index,
+        action: {
+          type: "modifyHeaders",
+          responseHeaders: CSP_REMOVE_HEADERS.map((header) => ({
+            operation: "remove",
+            header,
+          })),
+        },
+        condition: {
+          urlFilter: url,
+          resourceTypes: ["main_frame", "sub_frame"],
+        },
+      }));
+      rulesToAdd.push(...newCspRules);
+    }
+
+    if (orilist !== undefined) {
+      let processedOriList = orilist;
+      if (typeof processedOriList === "string") {
+        processedOriList = processedOriList
+          .split(/\n|,/)
+          .map((url) => url.trim())
+          .filter(Boolean);
+      }
+
+      const oldOriRuleIds = oldRules
+        .filter((rule) => rule.id >= ORI_RULE_START_ID)
+        .map((rule) => rule.id);
+      idsToRemove.push(...oldOriRuleIds);
+
+      const newOriRules = processedOriList.map((url, index) => ({
+        id: ORI_RULE_START_ID + index,
+        action: {
+          type: "modifyHeaders",
+          requestHeaders: [{ header: "Origin", operation: "set", value: url }],
+        },
+        condition: {
+          urlFilter: url,
+          resourceTypes: ["xmlhttprequest"],
+        },
+      }));
+      rulesToAdd.push(...newOriRules);
+    }
+
+    if (idsToRemove.length > 0 || rulesToAdd.length > 0) {
+      await browser.declarativeNetRequest.updateDynamicRules({
+        removeRuleIds: idsToRemove,
+        addRules: rulesToAdd,
+      });
+    }
+  } catch (err) {
+    kissLog("update csp rules", err);
+  }
+}
+
+/**
+ * 注册邮件显示脚本
+ */
+async function registerMsgDisplayScript() {
+  await messenger.messageDisplayScripts.register({
+    js: [{ file: "/content.js" }],
+  });
+}
+
+/**
+ * 获取UI语言
+ * @returns {Promise<string>}
+ */
+async function getUiLanguage() {
+  try {
+    const lang = await browser.i18n.getUILanguage();
+
+    if (lang === "zh-TW") {
+      return "zh_TW";
+    } else if (lang.startsWith("zh")) {
+      return "zh";
+    } else if (["ja", "ko"].includes(lang.substring(0, 2))) {
+      return lang.substring(0, 2);
+    } else {
+      return "en";
+    }
+  } catch (err) {
+    kissLog("get UI language error", err);
+    return "en";
+  }
+}
+
+/**
+ * 插件安装
+ */
+browser.runtime.onInstalled.addListener(async () => {
+  const uiLang = await getUiLanguage();
+  await tryInitDefaultData(uiLang);
+
+  //在thunderbird中注册脚本
+  if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
+    registerMsgDisplayScript();
+  }
+
+  const { contextMenuType, csplist, orilist, subrulesList } =
+    await getSettingWithDefault();
+
+  // 右键菜单
+  addContextMenus(contextMenuType);
+
+  // 禁用CSP
+  updateCspRules({ csplist, orilist });
+
+  // 同步订阅规则
+  trySyncAllSubRules({ subrulesList });
+});
+
+/**
+ * 浏览器启动
+ */
+browser.runtime.onStartup.addListener(async () => {
+  const {
+    clearCache,
+    contextMenuType,
+    subrulesList,
+    csplist,
+    orilist,
+    logLevel,
+  } = await getSettingWithDefault();
+
+  // 设置日志
+  logger.setLevel(logLevel);
+
+  // 清除缓存
+  if (clearCache) {
+    tryClearCaches();
+  }
+
+  //在thunderbird中注册脚本
+  if (process.env.REACT_APP_CLIENT === CLIENT_THUNDERBIRD) {
+    registerMsgDisplayScript();
+  }
+
+  // 右键菜单
+  // firefox重启后菜单会消失,故重复添加
+  addContextMenus(contextMenuType);
+
+  // 禁用CSP
+  updateCspRules({ csplist, orilist });
+
+  // 同步数据
+  trySyncSettingAndRules();
+
+  // 同步订阅规则
+  trySyncAllSubRules({ subrulesList });
+});
+
+/**
+ * 向当前活动标签页注入脚本或CSS
+ */
+const injectToCurrentTab = async (func, args) => {
+  const tabId = await getCurTabId();
+  return browser.scripting.executeScript({
+    target: { tabId, allFrames: true },
+    func: func,
+    args: [args],
+    world: "MAIN",
+  });
+};
+
+// 动作处理器映射表
+const messageHandlers = {
+  [MSG_FETCH]: (args) => fetchHandle(args),
+  [MSG_GET_HTTPCACHE]: (args) => getHttpCache(args),
+  [MSG_PUT_HTTPCACHE]: (args) => putHttpCache(args),
+  [MSG_OPEN_OPTIONS]: () => browser.runtime.openOptionsPage(),
+  [MSG_SAVE_RULE]: (args) => saveRule(args),
+  [MSG_INJECT_JS]: (args) => injectToCurrentTab(injectInlineJsBg, args),
+  [MSG_INJECT_CSS]: (args) => injectToCurrentTab(injectInternalCss, args),
+  [MSG_UPDATE_CSP]: (args) => updateCspRules(args),
+  [MSG_CONTEXT_MENUS]: (args) => addContextMenus(args),
+  [MSG_COMMAND_SHORTCUTS]: () => browser.commands.getAll(),
+  [MSG_BUILTINAI_DETECT]: (args) => chromeDetect(args),
+  [MSG_BUILTINAI_TRANSLATE]: (args) => chromeTranslate(args),
+  [MSG_SET_LOGLEVEL]: (args) => logger.setLevel(args),
+  [MSG_CLEAR_CACHES]: () => tryClearCaches(),
+  [MSG_OPEN_SEPARATE_WINDOW]: () => openSeparateWindowWithSavedBounds(),
+  [MSG_UPDATE_ICON]: (args, sender) => updateIcon(args, sender?.tab?.id),
+};
+
+/**
+ * 监听消息
+ * todo: 返回含错误的结构化信息
+ */
+browser.runtime.onMessage.addListener(async ({ action, args }, sender) => {
+  const handler = messageHandlers[action];
+  if (!handler) {
+    throw new Error(`Message action is unavailable: ${action}`);
+  }
+  return await handler(args, sender);
+});
+
+/**
+ * 监听快捷键
+ * Firefox 移动端不支持
+ */
+browser.commands?.onCommand?.addListener?.((command) => {
+  // console.log(`Command: ${command}`);
+  switch (command) {
+    case CMD_TOGGLE_TRANSLATE:
+      sendTabMsg(MSG_TRANS_TOGGLE);
+      break;
+    case CMD_TOGGLE_TRANSLATE_ONLY:
+      sendTabMsg(MSG_TRANS_TOGGLE_ONLY);
+      break;
+    case CMD_OPEN_TRANBOX:
+      sendTabMsg(MSG_OPEN_TRANBOX);
+      break;
+    case CMD_TOGGLE_TRANBOX:
+      sendTabMsg(MSG_TRANSBOX_TOGGLE);
+      break;
+    case CMD_TOGGLE_STYLE:
+      sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
+      break;
+    case CMD_OPEN_OPTIONS:
+      browser.runtime.openOptionsPage();
+      break;
+    case CMD_OPEN_SEPARATE_WINDOW:
+      // invoke the handler to open the independent window
+      if (messageHandlers[MSG_OPEN_SEPARATE_WINDOW]) {
+        messageHandlers[MSG_OPEN_SEPARATE_WINDOW]();
+      }
+      break;
+    default:
+  }
+});
+
+/**
+ * 监听右键菜单
+ * Firefox 移动端不支持
+ */
+browser?.contextMenus?.onClicked?.addListener?.(({ menuItemId }) => {
+  switch (menuItemId) {
+    case CMD_TOGGLE_TRANSLATE:
+      sendTabMsg(MSG_TRANS_TOGGLE);
+      break;
+    case CMD_TOGGLE_TRANSLATE_ONLY:
+      sendTabMsg(MSG_TRANS_TOGGLE_ONLY);
+      break;
+    case CMD_TOGGLE_STYLE:
+      sendTabMsg(MSG_TRANS_TOGGLE_STYLE);
+      break;
+    case CMD_OPEN_TRANBOX:
+      sendTabMsg(MSG_OPEN_TRANBOX);
+      break;
+    case CMD_TOGGLE_TRANBOX:
+      sendTabMsg(MSG_TRANSBOX_TOGGLE);
+      break;
+    case CMD_OPEN_OPTIONS:
+      browser.runtime.openOptionsPage();
+      break;
+    default:
+  }
+});
+
+/**
+ * 处理通用流式请求
+ * 通过端口连接实现流式数据传输
+ */
+async function handleStreamFetch(port, args) {
+  const { input, init, opts } = args;
+
+  try {
+    for await (const chunk of fetchStreamNative(
+      input,
+      init,
+      opts.httpTimeout
+    )) {
+      port.postMessage({ type: "delta", data: chunk });
+    }
+    port.postMessage({ type: "done" });
+  } catch (error) {
+    // AbortError 也要回信号：否则 content 侧生成器永久挂起、loading 不结束
+    port.postMessage({
+      type: "error",
+      error:
+        error.name === "AbortError"
+          ? "Request aborted (timeout or cancelled)"
+          : error.message,
+    });
+  }
+}
+
+/**
+ * 监听端口连接（用于流式请求）
+ */
+browser.runtime.onConnect.addListener((port) => {
+  if (port.name === PORT_STREAM_FETCH) {
+    port.onMessage.addListener((message) => {
+      if (message.action === "start") {
+        handleStreamFetch(port, message.args);
+      }
+    });
+  }
+});

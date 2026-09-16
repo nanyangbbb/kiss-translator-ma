@@ -1,0 +1,195 @@
+import { useCallback, useEffect, useMemo } from "react";
+import { DEFAULT_API_LIST, API_SPE_TYPES } from "../config";
+import { useSetting } from "./Setting";
+
+function useApiState() {
+  const { setting, updateSetting } = useSetting();
+  // 统一排序，所有使用transApis的地方都是排序好的
+  const transApis = useMemo(
+    () =>
+      [...(setting?.transApis || [])].sort(
+        (a, b) => (a.sortOrder || 0) - (b.sortOrder || 0)
+      ),
+    [setting?.transApis]
+  );
+
+  return { transApis, updateSetting };
+}
+
+export function useApiList() {
+  const { transApis, updateSetting } = useApiState();
+
+  useEffect(() => {
+    const curSlugs = new Set(transApis.map((api) => api.apiSlug));
+    const missApis = DEFAULT_API_LIST.filter(
+      (api) => !curSlugs.has(api.apiSlug)
+    );
+    if (missApis.length > 0) {
+      updateSetting((prev) => ({
+        ...prev,
+        transApis: [...(prev?.transApis || []), ...missApis],
+      }));
+    }
+  }, [transApis, updateSetting]);
+
+  const userApis = useMemo(
+    () =>
+      transApis
+        .filter((api) => !API_SPE_TYPES.builtin.has(api.apiSlug))
+        .sort((a, b) => a.apiSlug.localeCompare(b.apiSlug)),
+    [transApis]
+  );
+
+  const builtinApis = useMemo(
+    () => transApis.filter((api) => API_SPE_TYPES.builtin.has(api.apiSlug)),
+    [transApis]
+  );
+
+  const enabledApis = useMemo(
+    () => transApis.filter((api) => !api.isDisabled),
+    [transApis]
+  );
+
+  const aiEnabledApis = useMemo(
+    () => enabledApis.filter((api) => API_SPE_TYPES.ai.has(api.apiType)),
+    [enabledApis]
+  );
+
+  const addApi = useCallback(
+    (apiType) => {
+      const defaultApiOpt =
+        DEFAULT_API_LIST.find((da) => da.apiType === apiType) || {};
+      const uuid = crypto.randomUUID();
+      const apiSlug = `${apiType}_${crypto.randomUUID()}`;
+      const apiName = `${apiType}_${uuid.slice(0, 8)}`;
+      const newApi = {
+        ...defaultApiOpt,
+        apiSlug,
+        apiName,
+        apiType,
+      };
+      updateSetting((prev) => ({
+        ...prev,
+        transApis: [...(prev?.transApis || []), newApi],
+      }));
+    },
+    [updateSetting]
+  );
+
+  const copyApi = useCallback(
+    (sourceApi) => {
+      const uuid = crypto.randomUUID();
+      const apiSlug = `${sourceApi.apiType}_${uuid}`;
+      const apiName = `${sourceApi.apiName} - copy`;
+      const newApi = {
+        ...sourceApi,
+        apiSlug,
+        apiName,
+      };
+      updateSetting((prev) => ({
+        ...prev,
+        transApis: [...(prev?.transApis || []), newApi],
+      }));
+    },
+    [updateSetting]
+  );
+
+  const deleteApi = useCallback(
+    (apiSlug) => {
+      updateSetting((prev) => ({
+        ...prev,
+        transApis: (prev?.transApis || []).filter(
+          (api) => api.apiSlug !== apiSlug
+        ),
+      }));
+    },
+    [updateSetting]
+  );
+
+  const alphaSortApis = useCallback(
+    (direction = "asc") => {
+      updateSetting((prev) => {
+        const apis = prev?.transApis || [];
+        const pinnedApis = apis.filter((a) => a.sortOrder === -1);
+        const disabledApis = apis.filter((a) => a.isDisabled);
+        const normalApis = apis.filter(
+          (a) => a.sortOrder !== -1 && !a.isDisabled
+        );
+
+        const sorted = [...normalApis].sort((a, b) => {
+          const nameA = (a.apiName || "").toLowerCase();
+          const nameB = (b.apiName || "").toLowerCase();
+          return direction === "asc"
+            ? nameA.localeCompare(nameB)
+            : nameB.localeCompare(nameA);
+        });
+
+        const reassigned = sorted.map((api, index) => ({
+          ...api,
+          sortOrder: index,
+        }));
+
+        return {
+          ...prev,
+          transApis: [...pinnedApis, ...reassigned, ...disabledApis],
+        };
+      });
+    },
+    [updateSetting]
+  );
+
+  return {
+    transApis,
+    userApis,
+    builtinApis,
+    enabledApis,
+    aiEnabledApis,
+    addApi,
+    copyApi,
+    deleteApi,
+    alphaSortApis,
+  };
+}
+
+export function useApiItem(apiSlug) {
+  const { transApis, updateSetting } = useApiState();
+
+  const api = useMemo(
+    () => transApis.find((a) => a.apiSlug === apiSlug),
+    [transApis, apiSlug]
+  );
+
+  const update = useCallback(
+    (updateData) => {
+      updateSetting((prev) => ({
+        ...prev,
+        transApis: (prev?.transApis || []).map((item) =>
+          item.apiSlug === apiSlug ? { ...item, ...updateData, apiSlug } : item
+        ),
+      }));
+    },
+    [apiSlug, updateSetting]
+  );
+
+  const reset = useCallback(() => {
+    updateSetting((prev) => ({
+      ...prev,
+      transApis: (prev?.transApis || []).map((item) => {
+        if (item.apiSlug === apiSlug) {
+          const defaultApiOpt =
+            DEFAULT_API_LIST.find((da) => da.apiType === item.apiType) || {};
+          return {
+            ...defaultApiOpt,
+            apiSlug: item.apiSlug,
+            apiName: item.apiName,
+            apiType: item.apiType,
+            key: item.key,
+          };
+        }
+        return item;
+      }),
+    }));
+  }, [apiSlug, updateSetting]);
+
+  return { api, update, reset };
+}
